@@ -1,12 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAF Admin — JARVIS</title>
-<style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#050403; color:rgba(255,255,255,0.7); font-family:ui-monospace,monospace; display:flex; align-items:center; justify-content:center; height:100vh; } .status { text-align:center; } .name { font-size:11px; letter-spacing:0.4em; color:rgba(201,150,90,0.6); margin-bottom:8px; } .msg { font-size:9px; letter-spacing:0.2em; color:rgba(255,255,255,0.25); }</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAF Admin — Sign In</title>
+  <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
-<div class="status"><div class="name">MAF ADMIN</div><div class="msg">INITIALIZING</div></div>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-mark">M</div>
+      <h1>MAF Admin Portal</h1>
+      <p>RiskXLabs LLC — Restricted Access</p>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="form-group">
+      <div class="label">Email address</div>
+      <input class="input" id="email" type="email" placeholder="admin@riskxlabs.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <div class="label">Password</div>
+      <input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn btn-primary" id="signInBtn" style="width:100%;padding:12px;font-size:15px;margin-top:4px">
+      Sign in to Admin Portal
+    </button>
+
+    <div style="text-align:center;margin-top:16px">
+      <a href="register.html" style="font-size:12px;color:var(--muted);text-decoration:none">
+        Register new admin account →
+      </a>
+    </div>
+
+    <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--muted);border-top:1px solid var(--edge);padding-top:16px">
+      © 2026 RiskXLabs LLC · This portal is for authorized administrators only.
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script type="module">
+import { signIn, checkAdminRole } from './js/auth.js';
+import { isFirebaseConfigured } from './js/firebase-config.js';
+
+// If already signed in as admin, go to dashboard
+const stored = localStorage.getItem('maf_admin_user');
+if (stored) {
+  const user = JSON.parse(stored);
+  checkAdminRole(user.uid).then(isAdmin => {
+    if (isAdmin) location.href = '/dashboard.html';
+    else localStorage.removeItem('maf_admin_user');
+  }).catch(() => {});
+}
+
+if (!isFirebaseConfigured()) {
+  document.getElementById('errorMsg').textContent = 'Firebase not configured. Check environment variables.';
+  document.getElementById('errorMsg').style.display = '';
+}
+
+document.getElementById('signInBtn').addEventListener('click', async () => {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl    = document.getElementById('errorMsg');
+  const btn      = document.getElementById('signInBtn');
+
+  errEl.style.display = 'none';
+  if (!email || !password) {
+    errEl.textContent = 'Please enter your email and password.';
+    errEl.style.display = '';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Signing in...';
+
+  try {
+    const user = await signIn(email, password);
+    const isAdmin = await checkAdminRole(user.uid);
+
+    if (!isAdmin) {
+      errEl.textContent = 'Access denied. This account does not have admin privileges.';
+      errEl.style.display = '';
+      btn.disabled = false; btn.textContent = 'Sign in to Admin Portal';
+      return;
+    }
+
+    // Store admin session
+    localStorage.setItem('maf_admin_user', JSON.stringify({
+      uid: user.uid, email: user.email, signedInAt: Date.now()
+    }));
+
+    location.href = '/dashboard.html';
+  } catch(e) {
+    const msg = e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found'
+      ? 'Invalid email or password.'
+      : e.code === 'auth/too-many-requests'
+      ? 'Too many attempts. Please try again later.'
+      : 'Sign in failed: ' + e.message;
+    errEl.textContent = msg;
+    errEl.style.display = '';
+    btn.disabled = false; btn.textContent = 'Sign in to Admin Portal';
+  }
+});
+
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('signInBtn').click();
+});
+</script>
 </body>
 </html>
