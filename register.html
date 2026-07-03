@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAF Admin — Register</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-mark">M</div>
+      <h1>Register Admin Account</h1>
+      <p>A valid Bearer Token is required</p>
+    </div>
+
+    <div class="alert alert-warn" style="margin-bottom:16px;font-size:12px">
+      ⚠️ Admin accounts have full access to user data, gift codes, and analytics.
+      Only authorized RiskXLabs LLC personnel may register.
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="alert alert-grn" id="successMsg" style="display:none;margin-bottom:14px"></div>
+
+    <div class="form-group">
+      <div class="label">Email address</div>
+      <input class="input" id="email" type="email" placeholder="admin@riskxlabs.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <div class="label">Password</div>
+      <input class="input" id="password" type="password" placeholder="Min 8 characters" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <div class="label">Confirm password</div>
+      <input class="input" id="passwordConfirm" type="password" placeholder="Repeat password" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <div class="label">Bearer Token</div>
+      <input class="input" id="bearerToken" type="password" placeholder="Enter the admin bearer token"
+             autocomplete="off" style="letter-spacing:2px">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">
+        Contact Team@RiskXLabs.com to obtain a Bearer Token.
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="registerBtn" style="width:100%;padding:12px;font-size:15px;margin-top:4px">
+      Register Admin Account
+    </button>
+
+    <div style="text-align:center;margin-top:14px">
+      <a href="/index.html" style="font-size:12px;color:var(--muted);text-decoration:none">
+        ← Back to sign in
+      </a>
+    </div>
+
+    <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--muted);border-top:1px solid var(--edge);padding-top:16px">
+      © 2026 RiskXLabs LLC
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script type="module">
+import { registerAdmin } from './js/auth.js';
+
+document.getElementById('registerBtn').addEventListener('click', async () => {
+  const email         = document.getElementById('email').value.trim();
+  const password      = document.getElementById('password').value;
+  const passwordConf  = document.getElementById('passwordConfirm').value;
+  const bearerToken   = document.getElementById('bearerToken').value.trim();
+  const errEl         = document.getElementById('errorMsg');
+  const successEl     = document.getElementById('successMsg');
+  const btn           = document.getElementById('registerBtn');
+
+  errEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  // Validate
+  if (!email || !password || !bearerToken) {
+    errEl.textContent = 'All fields are required.';
+    errEl.style.display = ''; return;
+  }
+  if (password.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.';
+    errEl.style.display = ''; return;
+  }
+  if (password !== passwordConf) {
+    errEl.textContent = 'Passwords do not match.';
+    errEl.style.display = ''; return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Registering...';
+
+  try {
+    await registerAdmin(email, password, bearerToken);
+    successEl.textContent = '✓ Admin account created successfully! You can now sign in.';
+    successEl.style.display = '';
+    document.getElementById('email').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('passwordConfirm').value = '';
+    document.getElementById('bearerToken').value = '';
+    setTimeout(() => location.href = '/index.html', 2000);
+  } catch(e) {
+    errEl.textContent = e.message || 'Registration failed.';
+    errEl.style.display = '';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Register Admin Account';
+  }
+});
+</script>
+</body>
+</html>

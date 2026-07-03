@@ -1,0 +1,8 @@
+{
+  "name": "maf-admin",
+  "version": "1.0.0",
+  "description": "MAF Admin Portal — RiskXLabs LLC",
+  "scripts": {
+    "build": "node build.js"
+  }
+}

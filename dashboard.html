@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAF Admin Dashboard</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo">M</div>
+      <div class="brand-text">
+        <span class="brand-name">MAF Admin</span>
+        RiskXLabs LLC
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" onclick="showSection('overview',this)">
+        <span class="icon">📊</span>Overview
+      </a>
+      <a class="nav-item" onclick="showSection('users',this)">
+        <span class="icon">👥</span>Users
+      </a>
+      <a class="nav-item" onclick="showSection('codes',this)">
+        <span class="icon">🎁</span>Gift codes
+      </a>
+      <a class="nav-item" onclick="showSection('analytics',this)">
+        <span class="icon">📈</span>Analytics
+      </a>
+      <a class="nav-item" onclick="showSection('feedback',this)">
+        <span class="icon">💬</span>Feedback
+      </a>
+      <a class="nav-item" onclick="showSection('export',this)">
+        <span class="icon">↓</span>Export
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-badge">
+        <div class="badge-label">Codes available</div>
+        <div class="badge-val" id="sideCodesCount">—</div>
+      </div>
+      <a class="nav-item" id="signOutBtn" style="cursor:pointer">
+        <span class="icon">←</span>Sign out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+
+    <!-- OVERVIEW -->
+    <div class="section active" id="section-overview">
+      <div class="page-header">
+        <div class="page-title">📊 Overview</div>
+        <div class="page-sub">Real-time snapshot of MAF activity</div>
+      </div>
+      <div id="overviewAlerts"></div>
+      <div class="grid-4 mb-12">
+        <div class="metric-card"><div class="metric-num" id="mToday">—</div><div class="metric-lbl">Sessions today</div></div>
+        <div class="metric-card"><div class="metric-num" id="mWeek">—</div><div class="metric-lbl">Sessions this week</div></div>
+        <div class="metric-card"><div class="metric-num" id="mUsers">—</div><div class="metric-lbl">Total users</div></div>
+        <div class="metric-card"><div class="metric-num" id="mAvgPts">—</div><div class="metric-lbl">Avg pts / session</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Top weak areas</div>
+          <div class="card-sub">Lowest accuracy across all users</div>
+          <div id="overviewWeak" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Grade distribution</div>
+          <div class="card-sub">Sessions by grade level</div>
+          <div id="overviewGrades" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+      </div>
+      <div class="card mt-12">
+        <div class="card-title">Cloudflare web analytics</div>
+        <div class="card-sub">Traffic, page views, and device breakdown</div>
+        <a href="https://dash.cloudflare.com" target="_blank" class="btn mt-8" style="display:inline-flex">
+          Open Cloudflare Dashboard →
+        </a>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="section" id="section-users">
+      <div class="page-header row-between">
+        <div>
+          <div class="page-title">👥 Users</div>
+          <div class="page-sub">View, inspect, and remove user accounts</div>
+        </div>
+        <input class="input" id="userSearch" placeholder="Search username or email..."
+               style="max-width:260px" oninput="filterUsers()">
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="data-table">
+          <thead><tr>
+            <th>Username</th><th>Role</th><th>Email</th>
+            <th>Sessions</th><th>Last active</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="usersBody">
+            <tr><td colspan="6" class="text-muted text-sm" style="padding:16px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- User detail -->
+      <div id="userDetail" style="display:none" class="card mt-12">
+        <div class="row-between mb-12">
+          <div class="card-title" id="detailName">—</div>
+          <button class="btn btn-sm" onclick="document.getElementById('userDetail').style.display='none'">✕ Close</button>
+        </div>
+        <div class="grid-2">
+          <div>
+            <div class="label">Recent sessions</div>
+            <div id="detailSessions" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+          </div>
+          <div>
+            <div class="label">Accuracy by type</div>
+            <div id="detailTypes" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GIFT CODES -->
+    <div class="section" id="section-codes">
+      <div class="page-header">
+        <div class="page-title">🎁 Gift card codes</div>
+        <div class="page-sub">Manage Robux gift card inventory</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px" id="codeFilterTabs">
+        <button class="btn btn-sm btn-primary" onclick="filterCodes('all',this)">All</button>
+        <button class="btn btn-sm" onclick="filterCodes('available',this)">Available</button>
+        <button class="btn btn-sm" onclick="filterCodes('redeemed',this)">Redeemed</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="data-table">
+          <thead><tr>
+            <th>Code</th><th>Reward</th><th>Status</th>
+            <th>Added</th><th>Redeemed by</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="codesBody">
+            <tr><td colspan="6" class="text-muted text-sm" style="padding:16px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Add code -->
+      <div class="card mt-12">
+        <div class="card-title">Add single code</div>
+        <div class="row mt-8">
+          <input class="input" id="newCode" placeholder="e.g. RBXG-1234-ABCD" style="flex:2">
+          <input class="input" id="newReward" placeholder="400 Robux Gift Card" style="flex:2">
+          <button class="btn btn-primary" id="addCodeBtn">Add code</button>
+        </div>
+      </div>
+      <div class="card mt-8">
+        <div class="card-title">Bulk add codes</div>
+        <div class="text-muted text-sm mb-8">One code per line. Optionally add reward separated by comma: CODE,800 Robux Gift Card</div>
+        <textarea class="input" id="bulkCodes" style="height:80px;resize:vertical;font-family:monospace;font-size:12px"
+                  placeholder="RBXG-1111-AAAA&#10;RBXG-2222-BBBB,800 Robux Gift Card"></textarea>
+        <div class="row mt-8">
+          <button class="btn btn-primary" id="bulkAddBtn">Add all codes</button>
+          <span class="text-muted text-sm" id="bulkStatus"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="section" id="section-analytics">
+      <div class="page-header">
+        <div class="page-title">📈 Analytics</div>
+        <div class="page-sub">Learning patterns and engagement across all users</div>
+      </div>
+      <div class="grid-4 mb-12">
+        <div class="metric-card"><div class="metric-num" id="aTotalSess">—</div><div class="metric-lbl">Total sessions</div></div>
+        <div class="metric-card"><div class="metric-num" id="aActiveUsers">—</div><div class="metric-lbl">Active users (7d)</div></div>
+        <div class="metric-card"><div class="metric-num" id="aAvgAcc">—</div><div class="metric-lbl">Avg accuracy</div></div>
+        <div class="metric-card"><div class="metric-num" id="aAvgPts">—</div><div class="metric-lbl">Avg pts / session</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Accuracy by problem type</div>
+          <div id="aTypeAccuracy" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Sessions by grade</div>
+          <div id="aGrades" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+      </div>
+      <div class="grid-2 mt-12">
+        <div class="card">
+          <div class="card-title">Reward analytics</div>
+          <div id="aRewards" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Code inventory</div>
+          <div id="aInventory" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK -->
+    <div class="section" id="section-feedback">
+      <div class="page-header">
+        <div class="page-title">💬 Feedback & NPS</div>
+        <div class="page-sub">Child fun ratings and parent NPS responses</div>
+      </div>
+      <div class="grid-4 mb-12">
+        <div class="metric-card"><div class="metric-num" id="fNPS">—</div><div class="metric-lbl">NPS Score</div></div>
+        <div class="metric-card"><div class="metric-num" id="fPromoters">—</div><div class="metric-lbl">Promoters %</div></div>
+        <div class="metric-card"><div class="metric-num" id="fAvgFun">—</div><div class="metric-lbl">Avg fun rating</div></div>
+        <div class="metric-card"><div class="metric-num" id="fTotal">—</div><div class="metric-lbl">Total responses</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Parent NPS responses</div>
+          <div id="fNPSList" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Child fun ratings</div>
+          <div id="fFunList" class="mt-8"><div class="text-muted text-sm">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="section" id="section-export">
+      <div class="page-header">
+        <div class="page-title">↓ Export data</div>
+        <div class="page-sub">Download data as CSV</div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Session data</div>
+          <div class="card-sub">All sessions with accuracy, points, and type stats</div>
+          <button class="btn btn-primary mt-12" id="exportSessions">Download sessions CSV</button>
+        </div>
+        <div class="card">
+          <div class="card-title">User list</div>
+          <div class="card-sub">All users with username, role, and session count</div>
+          <button class="btn btn-primary mt-12" id="exportUsers">Download users CSV</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Gift code inventory</div>
+          <div class="card-sub">All codes with status, redemption dates</div>
+          <button class="btn btn-primary mt-12" id="exportCodes">Download codes CSV</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Feedback responses</div>
+          <div class="card-sub">NPS scores and fun ratings with comments</div>
+          <button class="btn btn-primary mt-12" id="exportFeedback">Download feedback CSV</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">⚠️ Remove user</div>
+    <div class="modal-body" id="deleteModalBody"></div>
+    <div class="label">Type the username to confirm:</div>
+    <input class="input mt-8" id="deleteConfirmInput" placeholder="Type username here" style="margin-bottom:12px">
+    <div class="row">
+      <button class="btn btn-danger" id="deleteConfirmBtn">Delete permanently</button>
+      <button class="btn" onclick="closeDeleteModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module">
+import { getCurrentAdmin, signOut, toast } from './js/auth.js';
+import {
+  getOverviewStats, getUserSessions, addCode, deleteCode,
+  deleteUserData, getFeedback, fmtDate, downloadCSV
+} from './js/data.js';
+
+// ── AUTH CHECK ────────────────────────────────────────────────
+const admin = await getCurrentAdmin();
+if (!admin) { location.href = '/index.html'; }
+
+document.getElementById('signOutBtn').addEventListener('click', signOut);
+
+// ── SECTION NAV ───────────────────────────────────────────────
+let _data = null;
+let _feedback = null;
+
+window.showSection = function(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'analytics' && _data) renderAnalytics();
+  if (name === 'feedback' && !_feedback) loadFeedback();
+};
+
+// ── LOAD DATA ─────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    _data = await getOverviewStats();
+    renderOverview();
+    renderUsers();
+    renderCodes();
+  } catch(e) {
+    console.error('Load error:', e);
+    toast('Failed to load data: ' + e.message, 'error');
+  }
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────
+function renderOverview() {
+  document.getElementById('mToday').textContent   = _data.todaySessions;
+  document.getElementById('mWeek').textContent    = _data.weekSessions;
+  document.getElementById('mUsers').textContent   = _data.users.length;
+  document.getElementById('mAvgPts').textContent  = _data.avgPts;
+  document.getElementById('sideCodesCount').textContent = _data.availableCodes;
+
+  // Alert
+  const alerts = document.getElementById('overviewAlerts');
+  if (_data.availableCodes === 0) {
+    alerts.innerHTML = '<div class="alert alert-red">⚠ No gift codes available! Add codes immediately.</div>';
+  } else if (_data.availableCodes <= 2) {
+    alerts.innerHTML = `<div class="alert alert-warn">⚠ Only ${_data.availableCodes} code${_data.availableCodes===1?'':'s'} remaining. Add more soon.</div>`;
+  } else {
+    alerts.innerHTML = `<div class="alert alert-grn">✓ ${_data.availableCodes} codes available in inventory.</div>`;
+  }
+
+  // Weak areas
+  const weakEl = document.getElementById('overviewWeak');
+  weakEl.innerHTML = _data.typeAccuracy.slice(0,6).map(({ type, pct }) => {
+    const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--amber)' : 'var(--red)';
+    return `<div class="bar-row">
+      <div class="bar-label">${type.replace(/_/g,' ')}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="bar-pct" style="color:${color}">${pct}%</div>
+    </div>`;
+  }).join('') || '<div class="text-muted text-sm">No session data yet.</div>';
+
+  // Grades
+  const gradeEl = document.getElementById('overviewGrades');
+  const grades = Object.entries(_data.gradeMap).sort((a,b) => a[0]-b[0]);
+  const maxG = Math.max(...grades.map(([,v]) => v), 1);
+  gradeEl.innerHTML = grades.map(([g, count]) => `
+    <div class="bar-row">
+      <div class="bar-label">Grade ${g}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(count/maxG*100)}%;background:var(--ora)"></div></div>
+      <div class="bar-pct" style="color:var(--ora-lt)">${count}</div>
+    </div>`).join('') || '<div class="text-muted text-sm">No data yet.</div>';
+}
+
+// ── USERS ─────────────────────────────────────────────────────
+let _usersFiltered = [];
+let _deleteUid = null, _deleteUsername = null;
+
+function renderUsers() {
+  _usersFiltered = [..._data.users];
+  renderUsersTable();
+}
+
+window.filterUsers = function() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  _usersFiltered = _data.users.filter(u =>
+    (u.username||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
+  );
+  renderUsersTable();
+};
+
+function renderUsersTable() {
+  const tbody = document.getElementById('usersBody');
+  if (!_usersFiltered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-sm" style="padding:16px">No users found.</td></tr>';
+    return;
+  }
+  const sessionCounts = {};
+  _data.allSessions.forEach(s => sessionCounts[s.uid] = (sessionCounts[s.uid]||0)+1);
+  const lastActive = {};
+  _data.allSessions.forEach(s => {
+    const d = s.at?.toDate ? s.at.toDate() : new Date(s.at||0);
+    if (!lastActive[s.uid] || d > lastActive[s.uid]) lastActive[s.uid] = d;
+  });
+  tbody.innerHTML = _usersFiltered.map(u => {
+    const roleColor = u.role==='admin'?'var(--red)':u.role==='parent'?'var(--amber)':'var(--ora-lt)';
+    const last = lastActive[u.uid];
+    const lastStr = last ? last.toLocaleDateString() : '—';
+    return `<tr>
+      <td><strong>@${u.username||'—'}</strong></td>
+      <td><span class="badge" style="color:${roleColor};border-color:${roleColor}">${u.role||'—'}</span></td>
+      <td style="color:var(--muted);font-size:11px">${u.email||'—'}</td>
+      <td>${sessionCounts[u.uid]||0}</td>
+      <td style="color:var(--muted)">${lastStr}</td>
+      <td>
+        <div class="row" style="gap:6px">
+          <button class="btn btn-sm" onclick="viewUser('${u.uid}','${u.username||''}')">View</button>
+          ${u.role!=='admin'
+            ? `<button class="btn btn-sm btn-danger" onclick="confirmDelete('${u.uid}','${u.username||u.uid}')">Remove</button>`
+            : '<span class="text-muted text-sm">Protected</span>'}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+window.viewUser = async function(uid, username) {
+  document.getElementById('detailName').textContent = `@${username}`;
+  document.getElementById('userDetail').style.display = '';
+  document.getElementById('userDetail').scrollIntoView({ behavior:'smooth' });
+  document.getElementById('detailSessions').innerHTML = '<div class="text-muted text-sm">Loading...</div>';
+  document.getElementById('detailTypes').innerHTML = '<div class="text-muted text-sm">Loading...</div>';
+  try {
+    const sessions = await getUserSessions(uid, 10);
+    if (sessions.length) {
+      document.getElementById('detailSessions').innerHTML = `
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Accuracy</th><th>Points</th><th>Grade</th></tr></thead>
+          <tbody>${sessions.map(s => `<tr>
+            <td>${fmtDate(s.at)}</td>
+            <td>${s.accuracy||0}%</td>
+            <td>+${s.weightedPoints||0}</td>
+            <td>${s.grade||'—'}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+      const typeMap = {};
+      sessions.forEach(s => {
+        if (!s.typeStats) return;
+        Object.entries(s.typeStats).forEach(([t,st]) => {
+          if (!typeMap[t]) typeMap[t]={correct:0,total:0};
+          typeMap[t].correct+=st.correct||0; typeMap[t].total+=st.total||0;
+        });
+      });
+      const types = Object.entries(typeMap).filter(([,v])=>v.total>0)
+        .sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total));
+      document.getElementById('detailTypes').innerHTML = types.map(([type,s]) => {
+        const pct = Math.round(s.correct/s.total*100);
+        const color = pct>=80?'var(--green)':pct>=60?'var(--amber)':'var(--red)';
+        return `<div class="bar-row">
+          <div class="bar-label">${type.replace(/_/g,' ')}</div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="bar-pct" style="color:${color}">${pct}%</div>
+        </div>`;
+      }).join('') || '<div class="text-muted text-sm">No type data.</div>';
+    } else {
+      document.getElementById('detailSessions').innerHTML = '<div class="text-muted text-sm">No sessions yet.</div>';
+      document.getElementById('detailTypes').innerHTML = '<div class="text-muted text-sm">No data yet.</div>';
+    }
+  } catch(e) { console.error(e); }
+};
+
+window.confirmDelete = function(uid, username) {
+  _deleteUid = uid; _deleteUsername = username;
+  document.getElementById('deleteModalBody').innerHTML =
+    `Permanently delete <strong>@${username}</strong> and all their data. This cannot be undone.`;
+  document.getElementById('deleteConfirmInput').value = '';
+  document.getElementById('deleteModal').classList.add('show');
+};
+
+window.closeDeleteModal = function() {
+  document.getElementById('deleteModal').classList.remove('show');
+  _deleteUid = null; _deleteUsername = null;
+};
+
+document.getElementById('deleteConfirmBtn').addEventListener('click', async () => {
+  const typed = document.getElementById('deleteConfirmInput').value.trim();
+  if (typed !== _deleteUsername && typed !== `@${_deleteUsername}`) {
+    toast('Username does not match', 'error'); return;
+  }
+  const btn = document.getElementById('deleteConfirmBtn');
+  btn.disabled = true; btn.textContent = 'Deleting...';
+  try {
+    await deleteUserData(_deleteUid, _deleteUsername);
+    // Also delete via Worker
+    await fetch('https://mafv5.agedotcom.workers.dev/admin/delete-user', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: _deleteUid, adminUid: admin.uid })
+    }).catch(() => {});
+    toast(`@${_deleteUsername} deleted.`, 'correct');
+    closeDeleteModal();
+    _data.users = _data.users.filter(u => u.uid !== _deleteUid);
+    renderUsersTable();
+  } catch(e) { toast('Delete failed: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Delete permanently'; }
+});
+
+// ── CODES ─────────────────────────────────────────────────────
+let _codesFilter = 'all';
+
+function renderCodes() {
+  renderCodesTable();
+}
+
+window.filterCodes = function(filter, el) {
+  _codesFilter = filter;
+  document.querySelectorAll('#codeFilterTabs .btn').forEach(b => {
+    b.classList.remove('btn-primary'); b.classList.add('btn');
+  });
+  el.classList.add('btn-primary');
+  renderCodesTable();
+};
+
+function renderCodesTable() {
+  const filtered = _data.codes.filter(c =>
+    _codesFilter === 'all' ? true :
+    _codesFilter === 'available' ? !c.redeemed : c.redeemed
+  );
+  const tbody = document.getElementById('codesBody');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-sm" style="padding:16px">No codes found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(c => `<tr>
+    <td style="font-family:monospace;color:var(--ora-lt);font-size:11px;letter-spacing:.5px">${c.id}</td>
+    <td>${c.reward||'400 Robux Gift Card'}</td>
+    <td><span class="badge ${c.redeemed?'badge-red':'badge-grn'}">${c.redeemed?'Redeemed':'Available'}</span></td>
+    <td style="color:var(--muted)">${fmtDate(c.addedAt)}</td>
+    <td style="color:var(--muted);font-size:11px">${c.redeemedBy||'—'}</td>
+    <td>${!c.redeemed?`<button class="btn btn-sm btn-danger" onclick="removeCode('${c.id}')">Delete</button>`:'—'}</td>
+  </tr>`).join('');
+}
+
+window.removeCode = async function(code) {
+  if (!confirm(`Delete code ${code}?`)) return;
+  try {
+    await deleteCode(code);
+    _data.codes = _data.codes.filter(c => c.id !== code);
+    document.getElementById('sideCodesCount').textContent = _data.codes.filter(c=>!c.redeemed).length;
+    renderCodesTable();
+    toast('Code deleted.', 'correct');
+  } catch(e) { toast('Delete failed: ' + e.message, 'error'); }
+};
+
+document.getElementById('addCodeBtn').addEventListener('click', async () => {
+  const code   = document.getElementById('newCode').value.trim().toUpperCase();
+  const reward = document.getElementById('newReward').value.trim() || '400 Robux Gift Card';
+  if (!code) { toast('Enter a code', 'error'); return; }
+  try {
+    await addCode(code, reward);
+    _data.codes.unshift({ id: code, reward, redeemed: false, addedAt: new Date() });
+    document.getElementById('sideCodesCount').textContent = _data.codes.filter(c=>!c.redeemed).length;
+    document.getElementById('newCode').value = '';
+    document.getElementById('newReward').value = '';
+    renderCodesTable();
+    toast('Code added!', 'correct');
+  } catch(e) { toast('Failed: ' + e.message, 'error'); }
+});
+
+document.getElementById('bulkAddBtn').addEventListener('click', async () => {
+  const lines = document.getElementById('bulkCodes').value.trim().split('\n').filter(Boolean);
+  if (!lines.length) { toast('Paste some codes first', 'error'); return; }
+  const statusEl = document.getElementById('bulkStatus');
+  statusEl.textContent = `Adding ${lines.length} codes...`;
+  let added = 0, failed = 0;
+  for (const line of lines) {
+    const [code, reward] = line.split(',').map(s => s.trim());
+    if (!code) continue;
+    try { await addCode(code.toUpperCase(), reward||'400 Robux Gift Card'); added++; }
+    catch { failed++; }
+  }
+  statusEl.textContent = `Done — ${added} added${failed?`, ${failed} failed`:''}`;
+  document.getElementById('bulkCodes').value = '';
+  toast(`${added} codes added!`, 'correct');
+  _data = await getOverviewStats();
+  renderCodesTable();
+  document.getElementById('sideCodesCount').textContent = _data.availableCodes;
+});
+
+// ── ANALYTICS ─────────────────────────────────────────────────
+function renderAnalytics() {
+  document.getElementById('aTotalSess').textContent  = _data.totalSessions;
+  document.getElementById('aActiveUsers').textContent = _data.uniqueActive;
+  document.getElementById('aAvgPts').textContent     = _data.avgPts;
+  const avgAcc = _data.typeAccuracy.length
+    ? Math.round(_data.typeAccuracy.reduce((s,t)=>s+t.pct,0)/_data.typeAccuracy.length) + '%'
+    : '—';
+  document.getElementById('aAvgAcc').textContent = avgAcc;
+
+  document.getElementById('aTypeAccuracy').innerHTML =
+    _data.typeAccuracy.map(({ type, pct, total }) => {
+      const color = pct>=80?'var(--green)':pct>=60?'var(--amber)':'var(--red)';
+      return `<div class="bar-row">
+        <div class="bar-label">${type.replace(/_/g,' ')} <span style="color:var(--muted);font-size:10px">(${total})</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="bar-pct" style="color:${color}">${pct}%</div>
+      </div>`;
+    }).join('') || '<div class="text-muted text-sm">No data yet.</div>';
+
+  const grades = Object.entries(_data.gradeMap).sort((a,b)=>a[0]-b[0]);
+  const maxG = Math.max(...grades.map(([,v])=>v),1);
+  document.getElementById('aGrades').innerHTML = grades.map(([g,count]) =>
+    `<div class="bar-row">
+      <div class="bar-label">Grade ${g}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(count/maxG*100)}%;background:var(--ora)"></div></div>
+      <div class="bar-pct" style="color:var(--ora-lt)">${count}</div>
+    </div>`).join('') || '<div class="text-muted text-sm">No data yet.</div>';
+
+  const redeemed = _data.redeemedCodes;
+  const available = _data.availableCodes;
+  const total = redeemed + available;
+  document.getElementById('aRewards').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="metric-card" style="padding:10px"><div class="metric-num" style="font-size:22px">${redeemed}</div><div class="metric-lbl">Codes redeemed</div></div>
+      <div class="metric-card" style="padding:10px"><div class="metric-num" style="font-size:22px">${available}</div><div class="metric-lbl">Codes available</div></div>
+      <div class="metric-card" style="padding:10px"><div class="metric-num" style="font-size:22px">${total?Math.round(redeemed/total*100):0}%</div><div class="metric-lbl">Redemption rate</div></div>
+      <div class="metric-card" style="padding:10px"><div class="metric-num" style="font-size:22px">${_data.avgPts}</div><div class="metric-lbl">Avg pts/session</div></div>
+    </div>`;
+
+  document.getElementById('aInventory').innerHTML = `
+    <div class="row-between" style="padding:6px 0;border-bottom:1px solid var(--edge)">
+      <span class="text-muted text-sm">Total codes</span><strong>${total}</strong>
+    </div>
+    <div class="row-between" style="padding:6px 0;border-bottom:1px solid var(--edge)">
+      <span class="text-muted text-sm">Available</span>
+      <strong style="color:${available<=2?'var(--red)':'var(--green)'}">${available}</strong>
+    </div>
+    <div class="row-between" style="padding:6px 0">
+      <span class="text-muted text-sm">Redeemed</span><strong>${redeemed}</strong>
+    </div>
+    ${available<=2?'<div class="alert alert-warn mt-8" style="font-size:11px">⚠ Low inventory!</div>':''}`;
+}
+
+// ── FEEDBACK ──────────────────────────────────────────────────
+async function loadFeedback() {
+  try {
+    _feedback = await getFeedback();
+    const nps = _feedback.filter(f => f.type === 'nps');
+    const fun = _feedback.filter(f => f.type === 'fun_rating');
+    const promoters  = nps.filter(f => f.score >= 9).length;
+    const detractors = nps.filter(f => f.score <= 6).length;
+    const npsScore = nps.length ? Math.round((promoters-detractors)/nps.length*100) : null;
+    const promPct  = nps.length ? Math.round(promoters/nps.length*100) : null;
+    const avgFun   = fun.length ? (fun.reduce((s,f)=>s+(f.rating||0),0)/fun.length).toFixed(1) : null;
+    document.getElementById('fNPS').textContent      = npsScore !== null ? npsScore : '—';
+    document.getElementById('fPromoters').textContent = promPct !== null ? promPct+'%' : '—';
+    document.getElementById('fAvgFun').textContent    = avgFun || '—';
+    document.getElementById('fTotal').textContent     = _feedback.length;
+    document.getElementById('fNPSList').innerHTML = nps.length
+      ? `<table class="data-table"><thead><tr><th>Score</th><th>Category</th><th>Comment</th><th>Date</th></tr></thead><tbody>
+        ${nps.map(f => {
+          const color = f.score>=9?'var(--green)':f.score>=7?'var(--amber)':'var(--red)';
+          return `<tr>
+            <td style="color:${color};font-weight:700">${f.score}</td>
+            <td><span class="badge" style="color:${color};border-color:${color}">${f.category||'—'}</span></td>
+            <td style="color:var(--muted);font-size:11px">${f.comment||'—'}</td>
+            <td style="color:var(--muted)">${fmtDate(f.at)}</td>
+          </tr>`;
+        }).join('')}</tbody></table>`
+      : '<div class="text-muted text-sm">No NPS responses yet.</div>';
+    const emojis = ['😞','😐','🙂','😄','🤩'];
+    const dist = [0,0,0,0,0];
+    fun.forEach(f => { if(f.rating>=1&&f.rating<=5) dist[f.rating-1]++; });
+    document.getElementById('fFunList').innerHTML = fun.length
+      ? dist.map((count,i) => `<div class="bar-row">
+          <span style="font-size:20px">${emojis[i]}</span>
+          <div class="bar-bg" style="flex:1;margin:0 10px"><div class="bar-fill" style="width:${fun.length?Math.round(count/fun.length*100):0}%;background:var(--ora)"></div></div>
+          <span style="font-size:12px;color:var(--cream-dk);width:24px;text-align:right">${count}</span>
+        </div>`).join('')
+      : '<div class="text-muted text-sm">No fun ratings yet.</div>';
+  } catch(e) { console.error('Feedback error:', e); }
+}
+
+// ── EXPORT ────────────────────────────────────────────────────
+document.getElementById('exportUsers').addEventListener('click', () => {
+  if (!_data) return;
+  downloadCSV('maf-users.csv', _data.users, ['uid','username','email','role']);
+  toast('Users CSV downloaded', 'correct');
+});
+document.getElementById('exportCodes').addEventListener('click', () => {
+  if (!_data) return;
+  downloadCSV('maf-codes.csv',
+    _data.codes.map(c => ({ id:c.id, reward:c.reward, redeemed:c.redeemed, redeemedBy:c.redeemedBy||'' })),
+    ['id','reward','redeemed','redeemedBy']);
+  toast('Codes CSV downloaded', 'correct');
+});
+document.getElementById('exportSessions').addEventListener('click', () => {
+  if (!_data) return;
+  downloadCSV('maf-sessions.csv',
+    _data.allSessions.map(s => ({ uid:s.uid, accuracy:s.accuracy, points:s.weightedPoints, grade:s.grade })),
+    ['uid','accuracy','points','grade']);
+  toast('Sessions CSV downloaded', 'correct');
+});
+document.getElementById('exportFeedback').addEventListener('click', async () => {
+  const fb = _feedback || await getFeedback();
+  downloadCSV('maf-feedback.csv', fb.map(f => ({ type:f.type, score:f.score||'', rating:f.rating||'', comment:f.comment||'' })), ['type','score','rating','comment']);
+  toast('Feedback CSV downloaded', 'correct');
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+await loadAll();
+</script>
+</body>
+</html>
