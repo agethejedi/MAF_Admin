@@ -37,8 +37,15 @@ export async function signOut() {
 export async function checkAdminRole(uid) {
   const { db } = await initFirebase();
   const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-  const snap = await getDoc(doc(db, 'users', uid));
-  return snap.exists() && snap.data().role === 'admin';
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    console.log('[Admin] Doc exists:', snap.exists());
+    if (snap.exists()) console.log('[Admin] Role:', snap.data().role);
+    return snap.exists() && snap.data().role === 'admin';
+  } catch(e) {
+    console.error('[Admin] checkAdminRole error:', e.message);
+    return false;
+  }
 }
 
 export async function getCurrentAdmin() {
