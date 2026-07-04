@@ -79,7 +79,10 @@ document.getElementById('signInBtn').addEventListener('click', async () => {
 
   try {
     const user = await signIn(email, password);
+    console.log('[Admin] Signed in as:', user.uid, user.email);
+
     const isAdmin = await checkAdminRole(user.uid);
+    console.log('[Admin] isAdmin result:', isAdmin);
 
     if (!isAdmin) {
       errEl.textContent = 'Access denied. This account does not have admin privileges.';
@@ -93,6 +96,7 @@ document.getElementById('signInBtn').addEventListener('click', async () => {
       uid: user.uid, email: user.email, signedInAt: Date.now()
     }));
 
+    console.log('[Admin] Redirecting to dashboard...');
     location.href = '/dashboard.html';
   } catch(e) {
     const msg = e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found'
