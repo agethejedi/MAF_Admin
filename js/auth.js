@@ -55,11 +55,14 @@ export async function getCurrentAdmin() {
 }
 
 export async function registerAdmin(email, password, bearerToken) {
-  // Verify bearer token via Worker
-  const res = await fetch(`${WORKER_URL}/admin/register`, {
+  // Bearer token sent in Authorization header to match Worker
+  const res = await fetch(`${WORKER_URL}/admin/create-admin`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, bearerToken })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${bearerToken}`
+    },
+    body: JSON.stringify({ email, password })
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Registration failed');
